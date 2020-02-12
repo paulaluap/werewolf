@@ -37,6 +37,10 @@ export class Villager implements Role {
 }
 
 export class Werewolf extends Villager {
+    constructor(public player: Player) {
+        super(player)
+        console.log(this)
+    }
     firstTurnMessage: string = `
     Du Bist ein Werwolf:
     in der Nacht kannst du mit den anderen woelfen abstimmen,

@@ -19,14 +19,20 @@ export class Player {
         }
     }
     sendDMessage(msg: string | Message) {
-        const chatid = dc.getChatIdByContactId(this.contactId);
-        // TODO Do we need to create the chat if it doesn't exists?
+        const chatid = dc.createChatByContactId(this.contactId)
         dc.sendMessage(chatid, msg);
+
+        console.log(dc.getContact(this.contactId).getName() + ":", msg);
     }
     kill() {
         this.alive = false;
         this.sendDMessage("Du wurdest getoetet");
     }
+
+    sendFirstTurnMessage() {
+        this.sendDMessage(this.role.firstTurnMessage)
+    }
+
     sendRoleMessage(dayPhase: Phase) {
         let message: string;
         if (dayPhase === Phase.Day) {
@@ -38,7 +44,9 @@ export class Player {
         else if (dayPhase === Phase.Night) {
             message = this.role.nightMessage;
         }
-        this.sendDMessage(message);
+        if (message && message !== '') {
+            this.sendDMessage(message);
+        }
     }
     processDM(dayPhase: Phase, msg: string) {
         if (dayPhase === Phase.Day) {

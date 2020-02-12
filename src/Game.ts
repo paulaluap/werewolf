@@ -16,8 +16,8 @@ export class Game {
     isDone: boolean = false;
     constructor(public chatId: number, private completeCallback: (game: Game) => void) {
         const chatMembers = dc.getChatContacts(chatId)
-        .filter((contactId) => contactId !== C.DC_CONTACT_ID_SELF) // exlude the bot from the member list
-    
+            .filter((contactId) => contactId !== C.DC_CONTACT_ID_SELF) // exlude the bot from the member list
+
         // check if enough players are here
         if (chatMembers.length < MIN_PLAYER_COUNT) {
             throw new Error(`Not enough Players (min. ${MIN_PLAYER_COUNT})`);
@@ -32,6 +32,7 @@ export class Game {
             const PlayerRole = PlayerRoles[index];
             players.push(new Player(this, chatMember, PlayerRole));
         }
+        this.players = players
     }
     sendGroupMessage(msg: string | Message) {
         dc.sendMessage(this.chatId, msg);
@@ -131,7 +132,7 @@ Jeden Moment erfahrt ihr, wer ihr seid!`;
         this.onTurnStart();
     }
 
-    endGame (msg:string|Message){
+    endGame(msg: string | Message) {
         this.isDone = true;
         this.sendGroupMessage(msg);
         this.completeCallback(this);

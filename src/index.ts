@@ -1,6 +1,6 @@
 import { DeltaChat, C } from 'deltachat-node'
 import path from 'path'
-import {setDC, Manager} from './Manager'
+import { setDC, Manager } from './Manager'
 
 // Load config
 var conf = require('rc')("werewolf-dc", {
@@ -19,19 +19,19 @@ setDC(dc)
 
 const gameManager = new Manager()
 
-function handleDCMessage (chatid:number, msgId:number) {
+function handleDCMessage(chatid: number, msgId: number) {
     const chat = dc.getChat(chatid)
     const msg = dc.getMessage(msgId)
 
     const type = chat.getType()
+    console.log("> ", chatid, msg.getText())
 
     // seperate message from group and from single chat
-    if(type === C.DC_CHAT_TYPE_SINGLE){
+    if (type === C.DC_CHAT_TYPE_SINGLE) {
         gameManager.maybeReplyDM(chatid, msg)
-    } else if(type === C.DC_CHAT_TYPE_GROUP || type === C.DC_CHAT_TYPE_VERIFIED_GROUP) {
+    } else if (type === C.DC_CHAT_TYPE_GROUP || type === C.DC_CHAT_TYPE_VERIFIED_GROUP) {
         gameManager.maybeReplyGroup(chatid, msg)
     }
-    console.log("> ", chatid, msg.getText())
 }
 
 dc.on('DC_EVENT_MSGS_CHANGED', (chatId, msgId) => {
