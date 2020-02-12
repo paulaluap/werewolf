@@ -1,5 +1,6 @@
-import { DeltaChat, Message } from 'deltachat-node'
+import { DeltaChat, Message, C } from 'deltachat-node'
 import { Game } from './Game'
+import { Player } from './Player'
 
 export let dc: DeltaChat
 
@@ -11,18 +12,42 @@ export class Manager {
 
     constructor() { }
 
+    findPlayer(contactId: number): Player {
+        for (let i = 0; i < this.games.length; i++) {
+            const game = this.games[i];
+            for (let j = 0; j < game.players.length; j++) {
+                const player = game.players[j];
+                if (player.contactId == contactId) {
+                    return player
+                }
+            }
+        }
+        return undefined
+    }
+
     maybeReplyDM(chatId: number, msg: Message) {
+        // would be easier if we had an api to get the author of the message directly on node
+        const contactId = dc.getChatContacts(chatId).find((contactId) => contactId !== C.DC_CONTACT_ID_SELF)
+
         // Check if player is in game
+        console.log("maybeReplyDM:", { chatId, contactId, msg: msg.getText() })
 
         // If true map Contact to Player and call Game.onDM
+        const player = this.findPlayer(contactId) 
+        if(player) {
+            player.game.onDM(player, msg)
+        } else {
+            dc.sendMessage(chatId, "You are not in a game currently, type `@wolf start` in an group to start")
+        }
     }
 
     maybeReplyGroup(chatId: number, msg: Message) {
+        console.log("maybeReplyGroup", {chatId, msg:msg.getText()})
         // Check if this group has a running game
         const game = this.games.find((game) => game.chatId === chatId)
         if (!game) {
             // If not ask to start a new one / check if the command was to create a new one
-            if (true /* todo check command */) {
+            if (msg.getText() === "@wolf start") {
                 // start new game
                 const chatid = msg.getChatId()
                 try {
@@ -38,7 +63,6 @@ export class Manager {
 
     removeGame(game: Game) {
         // remove the game from the array when it ended
-
-        //TODO
+        this.games = this.games.filter((game) => game !== game)
     }
 }
