@@ -1,0 +1,2 @@
+export const MIN_PLAYER_COUNT = 5
+const WEREWOLF_PERCENTAGE = 0.4

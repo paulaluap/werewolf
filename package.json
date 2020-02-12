@@ -4,7 +4,8 @@
   "description": "",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node src/index.js"
+    "start": "npm run build && node dist/index.js",
+    "build": "tsc"
   },
   "repository": {
     "type": "git",
@@ -16,7 +17,11 @@
   },
   "homepage": "https://github.com/paulaluap/werwolf#readme",
   "dependencies": {
-    "deltachat-node": "^1.0.0-beta.25",
+    "deltachat-node": "git+https://github.com/deltachat/deltachat-node.git#ac330a7501e1319a83b4fe087db31419bd1d4e23",
     "rc": "^1.2.8"
+  },
+  "devDependencies": {
+    "@types/node": "^13.7.0",
+    "typescript": "^3.7.5"
   }
 }

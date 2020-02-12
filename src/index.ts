@@ -1,6 +1,6 @@
-const DeltaChat = require('deltachat-node')
-const C = require('deltachat-node/constants')
-const path = require('path')
+import { DeltaChat, C } from 'deltachat-node'
+import path from 'path'
+import {setDC, Manager} from './Manager'
 
 // Load config
 var conf = require('rc')("werewolf-dc", {
@@ -15,16 +15,23 @@ if (!conf.email_address || !conf.email_password) {
 
 // Start DC
 const dc = new DeltaChat()
+setDC(dc)
+
+const gameManager = new Manager()
 
 function handleDCMessage (chatid, msgId) {
+    const chat = dc.getChat(chatid)
+    const msg = dc.getMessage(msgId)
 
-    // TODO seperate message from group and from single chat
-    console.log({chatid, msgId})
+    const type = chat.getType()
 
-    const chat = dc.getChat(chatid).toJson()
-    const message = dc.getMessage(msgId).toJson()
-
-    console.log("> ",chat, message)
+    // seperate message from group and from single chat
+    if(type === C.DC_CHAT_TYPE_SINGLE){
+        gameManager.maybeReplyDM(chatid, msg)
+    } else if(type === C.DC_CHAT_TYPE_GROUP || type === C.DC_CHAT_TYPE_VERIFIED_GROUP) {
+        gameManager.maybeReplyGroup(chatid, msg)
+    }
+    console.log("> ", chatid, msg.getText())
 }
 
 dc.on('DC_EVENT_MSGS_CHANGED', (chatId, msgId) => {
@@ -34,7 +41,7 @@ dc.on('DC_EVENT_MSGS_CHANGED', (chatId, msgId) => {
         handleDCMessage(dc.createChatByMessageId(msgId), msgId)
     }
 })
-dc.on('DC_EVENT_INCOMING_MSG', (...args) => handleDCMessage(...args))
+dc.on('DC_EVENT_INCOMING_MSG', (chatid: any, msgId: any) => handleDCMessage(chatid, msgId))
 
 // dc.on('ALL', console.log.bind(null, 'core |'))// for debugging
 
@@ -44,15 +51,17 @@ dc.open(path.join(__dirname, '../data'), () => {
             addr: conf.email_address,
             mail_pw: conf.email_password,
             e2ee_enabled: true,
+        }, () => {
+            console.log('init done')
         })
+    } else {
+        console.log('init done')
     }
-    console.log(console.log('init done'))
 })
 
 process.on('exit', () => {
     dc.close(() => {
-        close_db()
+        // clean up
     })
 })
 
-// console.log('init done')
