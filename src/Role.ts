@@ -6,9 +6,9 @@ export interface Role {
     nightMessage: string;
     player: Player;
     // When the player answers to the DM messages
-    onDayMsg(msg: string);
-    onAfternoonMsg(msg: string);
-    onNightMsg(msg: string);
+    onDayMsg(msg: string): void;
+    onAfternoonMsg(msg: string): void;
+    onNightMsg(msg: string): void;
 }
 
 export enum RoleBookEntry {

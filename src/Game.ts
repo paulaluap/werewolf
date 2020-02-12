@@ -1,4 +1,4 @@
-import { Message } from 'deltachat-node'
+import { Message, C } from 'deltachat-node'
 import { delay } from './util'
 import { RoleBookEntry, Werewolf } from './Role'
 import { Player } from './Player'
@@ -15,7 +15,9 @@ export class Game {
     players: Player[];
     isDone: boolean = false;
     constructor(public chatId: number, private completeCallback: (game: Game) => void) {
-        const chatMembers = dc.getChatContacts(chatId);
+        const chatMembers = dc.getChatContacts(chatId)
+        .filter((contactId) => contactId !== C.DC_CONTACT_ID_SELF) // exlude the bot from the member list
+    
         // check if enough players are here
         if (chatMembers.length < MIN_PLAYER_COUNT) {
             throw new Error(`Not enough Players (min. ${MIN_PLAYER_COUNT})`);
@@ -103,19 +105,15 @@ Jeden Moment erfahrt ihr, wer ihr seid!`;
         let villagerCount = playerCount - wolveCount;
         if (wolveCount > 0 && villagerCount == 0) {
             // wolves have won
-            this.isDone = true;
-            this.sendGroupMessage("die werwölfe haben gewonnen");
-            this.completeCallback(this);
+            return this.endGame("die werwölfe haben gewonnen")
         }
         else if (villagerCount > 0 && wolveCount == 0) {
-            this.isDone = true;
-            this.sendGroupMessage("die bürger haben gewonnen.\nihr habt euer dorf gerettet!");
-            this.completeCallback(this);
+            // villagers have won
+            return this.endGame("die bürger haben gewonnen.\nihr habt euer dorf gerettet!")
         }
         else if (alivePlayers.length == 0) {
-            this.isDone = true;
-            this.sendGroupMessage("Alle sind tot, wie konnte das passieren?");
-            this.completeCallback(this);
+            // everyone is dead (how could this happen?)
+            return this.endGame("Alle sind tot, wie konnte das passieren?")
         }
         this.turn = this.turn + 1;
         // Advance day phase
@@ -131,5 +129,11 @@ Jeden Moment erfahrt ihr, wer ihr seid!`;
                 break;
         }
         this.onTurnStart();
+    }
+
+    endGame (msg:string|Message){
+        this.isDone = true;
+        this.sendGroupMessage(msg);
+        this.completeCallback(this);
     }
 }

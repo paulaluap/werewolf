@@ -19,7 +19,7 @@ setDC(dc)
 
 const gameManager = new Manager()
 
-function handleDCMessage (chatid, msgId) {
+function handleDCMessage (chatid:number, msgId:number) {
     const chat = dc.getChat(chatid)
     const msg = dc.getMessage(msgId)
 
