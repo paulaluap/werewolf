@@ -35,7 +35,13 @@ export class Manager {
         // If true map Contact to Player and call Game.onDM
         const player = this.findPlayer(contactId) 
         if(player) {
-            player.game.onDM(player, msg)
+            if(player.alive){
+                player.game.onDM(player, msg)
+            } else {
+                // player is dead, parse no dm
+                player.sendDMessage("You are dead, but still in a game");
+                return;
+            }
         } else {
             dc.sendMessage(chatId, "You are not in a game currently, type `@wolf start` in an group to start")
         }
@@ -51,6 +57,11 @@ export class Manager {
                 // start new game
                 const chatid = msg.getChatId()
                 try {
+                    // check if some chatmember are already in another game
+                    if (false /* chat members inGame? */){
+                        throw new Error("Error: some Chat Members are already in another running game")
+                    }
+                    // try to start the game
                     const game = new Game(chatid, this.removeGame)
                     this.games.push(game)
                     game.onTurnStart()

@@ -6,6 +6,7 @@ import { Game, Phase } from "./Game";
 export class Player {
     alive: boolean = true;
     role: Role;
+    name:string;
     constructor(public game: Game, public contactId: number, role: RoleBookEntry) {
         switch (role) {
             case RoleBookEntry.Villager:
@@ -17,12 +18,13 @@ export class Player {
             default:
                 throw Error("Unknown Role: " + role);
         }
+        this.name = dc.getContact(this.contactId).getName()
     }
     sendDMessage(msg: string | Message) {
         const chatid = dc.createChatByContactId(this.contactId)
         dc.sendMessage(chatid, msg);
 
-        console.log(dc.getContact(this.contactId).getName() + ":", msg);
+        console.log(this.name + ":", msg);
     }
     kill() {
         this.alive = false;
@@ -34,15 +36,19 @@ export class Player {
     }
 
     sendRoleMessage(dayPhase: Phase) {
+        if(!this.alive){
+            // player is dead, send no role message
+            return;
+        }
         let message: string;
         if (dayPhase === Phase.Day) {
-            message = this.role.dayMessage;
+            message = this.role.getDayMessage();
         }
         else if (dayPhase === Phase.Afternoon) {
-            message = this.role.afternoonMessage;
+            message = this.role.getAfternoonMessage();
         }
         else if (dayPhase === Phase.Night) {
-            message = this.role.nightMessage;
+            message = this.role.getNightMessage();
         }
         if (message && message !== '') {
             this.sendDMessage(message);

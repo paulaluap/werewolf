@@ -1,19 +1,23 @@
 import { Message, C } from 'deltachat-node'
 import { delay } from './util'
-import { RoleBookEntry, Werewolf } from './Role'
+import { RoleBookEntry, Werewolf, Villager } from './Role'
 import { Player } from './Player'
 import { dc } from './Manager'
 import { MIN_PLAYER_COUNT } from "./constants"
+import { countVotes } from './countVotes'
+
 export enum Phase {
     Day,
     Afternoon,
     Night // votig phase for wolves
 }
+
 export class Game {
     turn: number = 0;
     phase: Phase = Phase.Afternoon;
     players: Player[];
     isDone: boolean = false;
+
     constructor(public chatId: number, private completeCallback: (game: Game) => void) {
         const chatMembers = dc.getChatContacts(chatId)
             .filter((contactId) => contactId !== C.DC_CONTACT_ID_SELF) // exlude the bot from the member list
@@ -22,9 +26,11 @@ export class Game {
         if (chatMembers.length < MIN_PLAYER_COUNT) {
             throw new Error(`Not enough Players (min. ${MIN_PLAYER_COUNT})`);
         }
+
+        // assign roles
         const players: Player[] = [];
         const PlayerRoles = Array(chatMembers.length).fill(RoleBookEntry.Villager);
-        // THIS assign roles (this is just some deterministic sample code)
+        // TODO assign roles (this is just some deterministic sample code)
         PlayerRoles[1] = RoleBookEntry.Werewolf;
         PlayerRoles[3] = RoleBookEntry.Werewolf;
         for (let index = 0; index < chatMembers.length; index++) {
@@ -86,9 +92,37 @@ Jeden Moment erfahrt ihr, wer ihr seid!`;
         await delay(10);
         this.onTurnEnd();
     }
-    onTurnEnd() {
+    async onTurnEnd() {
         if (this.phase === Phase.Day) {
-            // abstimmung auswerten
+            // villager abstimmung auswerten
+            const villagers = this.getAlivePlayers()
+                .map((player) => player.role) as Villager[]
+            // collect votes
+            const result: Player[] = countVotes(villagers, (villager) => villager.dayVote)
+            if (result.length === 0) {
+                // Nobody voted
+                this.sendGroupMessage("die dorfbewohner haben nicht abgestimmt");
+            } else if (result.length == 1) {
+                // winner/victim of the Voting
+                const victim = result[0]
+                victim.kill()
+
+                this.sendGroupMessage(`Ihr habt euch entschieden, ${victim.name} zu töten...`);
+                await delay(10);
+                if (victim.role instanceof Werewolf) {
+                    const wolve_count = this.getAlivePlayers()
+                        .filter((player) => player.role instanceof Werewolf).length
+                    this.sendGroupMessage(`... das war eine gut entscheidung! 
+nun sind es nur noch ${wolve_count} werwölfe.`)
+                } else {
+                    this.sendGroupMessage(`... die Bürgen weinen, denn ${victim.name} war einer von euch 
+und ihr habt es den Werwölfen nur noch leichter gemacht.`)
+
+                }
+            } else {
+                // tie
+                this.sendGroupMessage("Ihr wart euch nicht einigen wen ihr hinrichten wollt und habt im zuge dessen niemanden getötet");
+            }
         }
         else if (this.phase === Phase.Afternoon) {
             // anounce what special actions were taken and have something to announce
@@ -96,14 +130,32 @@ Jeden Moment erfahrt ihr, wer ihr seid!`;
         }
         else if (this.phase === Phase.Night) {
             // wolf abstimmung auswerten
+            const wolves = this.getAlivePlayers()
+                .map((player) => player.role)
+                .filter((role) => role instanceof Werewolf) as Werewolf[]
+            // process votes & announce results
+            const result = countVotes(wolves, (wolf) => wolf.nightVote)
+            if (result.length === 0) {
+                // Nobody voted
+                this.sendGroupMessage("Die woelfe haben heute Nacht nicht zugeschlagen");
+            } else if (result.length == 1) {
+                // winner/victim of the Voting
+                const victim = result[0]
+                victim.kill()
+                this.sendGroupMessage(`${victim.name} wurde zerfetzt aufgefunden, die woelfe haben mal wieder zugeschlagen!`);
+            } else {
+                // tie
+                this.sendGroupMessage("Die woelfe haben sich zerstritten und deshalb heute Nacht nicht zugeschlagen");
+            }
         }
         this.nextTurn();
     }
     nextTurn() {
-        let alivePlayers = this.players.filter((player) => player.alive);
+        let alivePlayers = this.getAlivePlayers();
         let playerCount: number = alivePlayers.length;
         let wolveCount: number = alivePlayers.filter((player) => player.role instanceof Werewolf).length;
         let villagerCount = playerCount - wolveCount;
+
         if (wolveCount > 0 && villagerCount == 0) {
             // wolves have won
             return this.endGame("die werwölfe haben gewonnen")
@@ -136,5 +188,9 @@ Jeden Moment erfahrt ihr, wer ihr seid!`;
         this.isDone = true;
         this.sendGroupMessage(msg);
         this.completeCallback(this);
+    }
+
+    getAlivePlayers(): Player[] {
+        return this.players.filter((player) => player.alive)
     }
 }
